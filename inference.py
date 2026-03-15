@@ -1,3 +1,8 @@
+from collections import defaultdict
+
+import numpy as np
+from tqdm.auto import tqdm
+
 def tree_bp(tree, root):
     
     messages = {}
@@ -51,5 +56,35 @@ def tree_bp(tree, root):
             backward(neigh, node)
     
     backward(root, None)
+    
+    return marginals
+
+
+def loopy_bp(tree, max_iter, alpha = 0.5):
+    n = tree.n
+    messages = defaultdict(lambda : np.ones(n) / n)
+    for _ in range(max_iter):
+        for node in tree.nodes:
+            for target in tree.adj[node]:
+                h = tree.phi[node]
+                for neigh in tree.adj[node]:
+                    if neigh == target:
+                        continue
+                    h = h * messages[(neigh, node)]
+                    
+                msg = tree.psi[(node, target)].T @ h
+                msg /= msg.sum()
+                msg = (1-alpha)*msg + alpha*messages[(node,target)]
+                messages[(node, target)] = msg
+    
+    marginals = {}
+    
+    for node in tree.nodes:
+        p = tree.phi[node]
+        for neigh in tree.adj[node]:
+            p = p * messages[(neigh, node)]
+        
+        p = p / p.sum()
+        marginals[node] = p
     
     return marginals
