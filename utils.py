@@ -63,8 +63,8 @@ def noise_graph_from_image(image : np.array, alpha : float, beta : float):
     
 
 def image_from_marginals(image, marginals):
-    im = np.zeros_like(image)
-    H, W = image.shape
+    H, W = image.shape[:2]
+    im = np.zeros((H, W))
     
     for k, (_, x) in marginals.items():
         i = k // W

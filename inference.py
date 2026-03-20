@@ -73,7 +73,7 @@ def loopy_bp(tree, max_iter, alpha = 0.5):
                     h = h * messages[(neigh, node)]
                     
                 msg = tree.psi[(node, target)].T @ h
-                msg /= msg.sum()
+                msg /= (msg.sum() + 1e-10)
                 msg = (1-alpha)*msg + alpha*messages[(node,target)]
                 messages[(node, target)] = msg
     
