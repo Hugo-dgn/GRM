@@ -1,7 +1,7 @@
 from collections import defaultdict
+from tqdm.auto import tqdm
 
 import numpy as np
-from tqdm.auto import tqdm
 
 def tree_bp(tree, root):
     
@@ -59,8 +59,55 @@ def tree_bp(tree, root):
     
     return marginals
 
+def loopy_bp(graph, max_iter=50, tol=1e-3):
+    n_states = graph.n
+    nodes = graph.nodes
+    adj = graph.adj
+    phi = graph.phi
+    psi = graph.psi
 
-def loopy_bp(tree, max_iter, alpha = 0.5):
+    uniform = np.ones(n_states) / n_states
+    prev_messages = {u: {v: uniform.copy() for v in adj[u]} for u in nodes}
+
+    for _ in range(max_iter):
+        diffs = []
+
+        for node in nodes:
+            neighs = adj[node]
+            phi_node = phi[node]
+
+            if len(neighs) == 0:
+                continue
+
+            msgs_in = np.stack([prev_messages[nb][node] for nb in neighs], axis=0)
+            
+            total_prod = phi_node * msgs_in.prod(axis=0)
+
+            for t_idx, target in enumerate(neighs):
+                h = total_prod / np.clip(msgs_in[t_idx], 1e-10, np.inf)
+                msg = psi[(node, target)].T @ h
+                msg /= msg.sum() + 1e-10
+
+                new_msg = msg
+                diffs.append(np.max(np.abs(new_msg - prev_messages[node][target])))
+                prev_messages[node][target] = new_msg
+
+        if np.mean(diffs) < tol:
+            break
+
+    marginals = {}
+    for node in nodes:
+        neighs = adj[node]
+        p = phi[node].copy()
+        if neighs:
+            p *= np.stack([prev_messages[nb][node] for nb in neighs]).prod(axis=0)
+        p /= p.sum() + 1e-10
+        marginals[node] = p
+
+    return marginals
+
+
+def trw_loopy_bp(tree, max_iter, rho, alpha = 0.5):
     n = tree.n
     messages = defaultdict(lambda : np.ones(n) / n)
     for _ in range(max_iter):
@@ -70,9 +117,9 @@ def loopy_bp(tree, max_iter, alpha = 0.5):
                 for neigh in tree.adj[node]:
                     if neigh == target:
                         continue
-                    h = h * messages[(neigh, node)]
+                    h = h * messages[(neigh, node)] ** rho[(neigh, node)]
                     
-                msg = tree.psi[(node, target)].T @ h
+                msg = (tree.psi[(node, target)] ** (1.0 / rho[(node, target)])).T @ h
                 msg /= (msg.sum() + 1e-10)
                 msg = (1-alpha)*msg + alpha*messages[(node,target)]
                 messages[(node, target)] = msg
