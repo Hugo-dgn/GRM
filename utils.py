@@ -64,7 +64,7 @@ def noise_graph_from_image(image : np.array, alpha : float, beta : float):
 
 
 def segmentation_graph_from_image(model: BaseEstimator, image: np.ndarray,
-                                  beta: float, sigma: float):
+                                  beta: float, sigma: float, scaler=None):
     H, W, C = image.shape
     N = H * W
     graph = models.Graph(2)
@@ -72,6 +72,10 @@ def segmentation_graph_from_image(model: BaseEstimator, image: np.ndarray,
     flat = np.arange(N).reshape(H, W)
 
     X_flat = image.reshape(-1, C)
+    
+    if scaler is not None:
+        X_flat = scaler.transform(X_flat)
+    
     probas = model.predict_proba(X_flat).reshape(H, W, -1)
     probas /= probas.sum(axis=-1, keepdims=True) + 1e-10
 
