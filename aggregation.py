@@ -8,7 +8,7 @@ def mean_agg(x):
 def mean_var_agg(x):
     mu = np.mean(x, axis=0)
     var = np.var(x, axis=0)
-    return np.concatenate(mu, var)
+    return np.concatenate([mu, var])
 
 def lab_mean_var_agg(x):
     x = x / 255.0
