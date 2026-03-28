@@ -1,0 +1,36 @@
+method: bayesian
+
+metric:
+  name : 'iou'
+  goal: 'maximize'
+
+parameters:
+  category:
+    value: 15
+
+  agg:
+    value: mean
+
+  n_segments:
+    values: [50, 100, 300]
+
+  compactness:
+    values: [10, 20, 30]
+
+  model:
+    values: ['logistic', 'rdf', 'density']
+
+  max_iter:
+    value: 100
+  
+  beta:
+    distribution: 'uniform'
+    min: 0.5
+    max: 2
+  
+  sigma:
+    distribution: 'uniform'
+    min: 50
+    max: 200
+  
+  
