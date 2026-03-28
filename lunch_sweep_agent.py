@@ -3,6 +3,7 @@ import numpy as np
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.neural_network import MLPClassifier
 
 from skimage import color
 
@@ -22,8 +23,9 @@ agg_funcs = {
 
 classifiers = {
     'logistic' : LogisticRegression(),
-    'rdf' : RandomForestClassifier(10, max_depth=2),
-    'density' : models.DensityDistance()
+    'rdf' : RandomForestClassifier(n_estimators=10, max_depth=3),
+    'density' : models.DensityDistance(),
+    'mpl' : MLPClassifier(hidden_layer_sizes=(16, 16))
 }
 
 def train(config=None):
@@ -49,4 +51,4 @@ def train(config=None):
         ious = inference.sequential_segmentation(test_dataset, model, config.max_iter, trw=True)
         wandb.log({"iou": ious.mean()})
         
-wandb.agent('hugo-degeneve/GRM/xlasuqsr', train, count=5)
+wandb.agent('hugo-degeneve/GRM/naldd23v', train, count=20)

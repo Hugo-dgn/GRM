@@ -1,4 +1,4 @@
-method: bayesian
+method: bayes
 
 metric:
   name : 'iou'
@@ -9,16 +9,20 @@ parameters:
     value: 15
 
   agg:
-    value: mean
+    values: ['mean_var', 'lab_mean_var', 'lab_mean_var_hist']
 
   n_segments:
-    values: [50, 100, 300]
+    distribution: int_uniform
+    min: 100
+    max: 500
 
   compactness:
-    values: [10, 20, 30]
+    distribution: int_uniform
+    min: 10
+    max: 50
 
   model:
-    values: ['logistic', 'rdf', 'density']
+    values: ['rdf', 'density', 'mlp']
 
   max_iter:
     value: 100
