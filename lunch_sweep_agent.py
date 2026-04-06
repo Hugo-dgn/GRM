@@ -25,7 +25,7 @@ classifiers = {
     'logistic' : LogisticRegression(),
     'rdf' : RandomForestClassifier(n_estimators=10, max_depth=3),
     'density' : models.DensityDistance(),
-    'mpl' : MLPClassifier(hidden_layer_sizes=(16, 16))
+    'mlp' : MLPClassifier(hidden_layer_sizes=(16, 16))
 }
 
 def train(config=None):
@@ -51,4 +51,4 @@ def train(config=None):
         ious = inference.sequential_segmentation(test_dataset, model, config.max_iter, trw=True)
         wandb.log({"iou": ious.mean()})
         
-wandb.agent('hugo-degeneve/GRM/naldd23v', train, count=20)
+wandb.agent('hugo-degeneve/GRM/naldd23v', train, count=100)
