@@ -1,5 +1,9 @@
 from collections import defaultdict
 
+import torch.nn as nn
+import torch.nn.functional as F
+import torch
+
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.base import BaseEstimator, ClassifierMixin
@@ -216,3 +220,34 @@ class SuperLogisticMask(SuperSegment):
     def __init__(self, beta=1, sigma=100, n_segments=100, compactness=20, solver="lbfgs", agg_func=None):
         model = LogisticRegression(solver=solver)
         SuperSegment.__init__(self, model, beta, sigma, n_segments, compactness, agg_func=agg_func)
+        
+class CNNUnary(nn.Module):
+    def __init__(self, kernel_size=7):
+        super().__init__()
+        self.model = nn.Sequential(
+            nn.Conv2d(3, 16, kernel_size=kernel_size, padding='same'),
+            nn.ReLU(),
+            nn.Conv2d(16, 64, kernel_size=kernel_size, padding='same'),
+            nn.ReLU(),
+            nn.Conv2d(64, 16, kernel_size=kernel_size, padding='same'),
+            nn.ReLU(),
+            nn.Conv2d(16, 2, kernel_size=kernel_size, padding='same'),
+        )
+    
+    def forward(self, x):
+        
+        x = (x - x.mean(dim=(2, 3), keepdim=True)) / x.std(dim=(2, 3), keepdim=True)
+        return self.model(x)
+    
+    def predict_probas(self, x):
+        x = np.array(x)
+        x = torch.from_numpy(x).permute(2, 0, 1).unsqueeze(0)
+        self.eval()
+        with torch.no_grad():
+            logits = self(x.float())
+        probs = F.softmax(logits, dim=1)
+        return probs[0].permute(1, 2, 0).detach().cpu().numpy()
+
+    def predict(self, x):
+        probas = self.predict_probas(x)
+        return np.argmax(probas, axis=2)

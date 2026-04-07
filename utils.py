@@ -2,6 +2,8 @@ import numpy as np
 from sklearn.base import BaseEstimator
 from skimage.segmentation import slic
 
+from PIL import Image
+
 import models
     
     
@@ -39,9 +41,6 @@ def segmentation_graph_from_image(model: BaseEstimator, image: np.ndarray,
                                   beta: float, sigma: float, transform=None):
     H, W, C = image.shape
     N = H * W
-    graph = models.Graph(2)
-
-    flat = np.arange(N).reshape(H, W)
 
     X_flat = image.reshape(-1, C)
     
@@ -51,6 +50,15 @@ def segmentation_graph_from_image(model: BaseEstimator, image: np.ndarray,
     probas = model.predict_proba(X_flat).reshape(H, W, -1)
     probas /= probas.sum(axis=-1, keepdims=True) + 1e-10
 
+    graph = segmentation_graph_from_proba_map(image, probas, beta, sigma)
+
+    return graph
+
+def segmentation_graph_from_proba_map(image, probas, beta, sigma):
+    H, W, C = image.shape
+    N = H * W
+    flat = np.arange(N).reshape(H, W)
+    graph = models.Graph(2)
     for k in range(N):
         graph.add_node(k, probas.reshape(-1, probas.shape[-1])[k])
 
@@ -204,3 +212,22 @@ def balance_data(features, labels):
     labels = labels[balanced_idx]
     
     return features, labels
+
+def downscale(image, mask, size):
+    small_image = image.copy()
+    small_image.thumbnail((size,size))
+    
+    small_mask = mask.copy()
+    small_mask.thumbnail((size,size))
+    
+    image = np.array(small_image)
+    mask = np.array(small_mask)
+    
+    return image, mask
+
+def upscale(image, shape):
+    pil_img = Image.fromarray(image.astype(np.float32), mode='F')
+    up_img = pil_img.resize((shape[0], shape[1]), resample=Image.BILINEAR)
+    up_img = np.array(up_img)
+    
+    return up_img

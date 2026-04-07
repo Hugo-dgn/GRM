@@ -132,22 +132,17 @@ def trw_bp(graph, max_iter=50, tol=1e-3):
 
             for t_idx, target in enumerate(neighs):
                 rho_ij = rho[(node, target)]
-
-                # Each incoming message is raised to its own rho weight
-                # (rho_ki for neighbor k -> node i)
                 weighted_msgs_in = np.stack([
                     prev_messages[nb][node] ** rho[(nb, node)]
                     for nb in neighs
                 ], axis=0)
 
-                # Cavity: product of all weighted incoming messages except from target
                 cavity = phi_node * weighted_msgs_in.prod(axis=0)
                 cavity /= np.clip(prev_messages[target][node] ** rho_ij, 1e-10, np.inf)
 
-                # Edge potential is reweighted by rho_ij
-                psi_rho = psi[(node, target)] ** rho_ij  # shape: (n_states, n_states)
+  
+                psi_rho = psi[(node, target)] ** rho_ij
 
-                # Marginalize: new message is psi_rho.T @ cavity, then raised to 1/rho_ij
                 raw = psi_rho.T @ cavity
                 msg = raw ** (1.0 / rho_ij)
                 msg /= msg.sum() + 1e-10
@@ -158,7 +153,6 @@ def trw_bp(graph, max_iter=50, tol=1e-3):
         if np.mean(diffs) < tol:
             break
 
-    # Beliefs: incoming messages weighted by their own rho
     marginals = {}
     for node in nodes:
         neighs = adj[node]
@@ -181,9 +175,19 @@ def run_single_image(image, mask, model, max_iter, trw):
     predictions = model(image, max_iter, trw=trw)
     return utils.IoU(mask, predictions)
 
-def sequential_segmentation(dataset, model, max_iter, trw):
+def run_single_image_downscale(image, mask, model, max_iter, trw, size, threshold):
+    mask = utils.preprocess(mask)
+    downscaled_image, downscaled_mask = utils.downscale(image, mask, size)
+    predictions = model(downscaled_image, max_iter, trw=trw)
+    predictions = utils.upscale(predictions, image.size) > threshold
+    return utils.IoU(mask, predictions)
+
+def sequential_segmentation(dataset, model, max_iter, trw, downscale_size=0, threshold=0.1):
     results = []
     for image, (mask, cat) in tqdm(dataset):
-        iou = run_single_image(image, mask, model, max_iter, trw)
+        if downscale_size > 0:
+            iou = run_single_image_downscale(image, mask, model, max_iter, trw, downscale_size, threshold)
+        else:
+            iou = run_single_image(image, mask, model, max_iter, trw)
         results.append(iou)
     return np.array(results)
